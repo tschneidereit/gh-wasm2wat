@@ -1,7 +1,7 @@
 {
   "manifest_version": 2,
   "name": "WASM source renderer for GitHub",
-  "version": "0.2",
+  "version": "0.3",
   "author": "Till Schneidereit",
   "homepage_url": "https://github.com/tschneidereit/gh-wasm2wat",
 

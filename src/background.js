@@ -11,8 +11,8 @@
 function showWasmSource({tabId, frameId}) {
     browser.tabs.sendMessage(tabId, "show wasm", (...args) => {
         if (args.length === 0) {
-            browser.tabs.executeScript(tabId, { file: "/libwabt.js", frameId });
-            browser.tabs.executeScript(tabId, { file: "/show-wasm-wat.js", frameId });
+            browser.tabs.executeScript(tabId, { file: "/libwabt.js", frameId },
+                () => browser.tabs.executeScript(tabId, { file: "/show-wasm-wat.js", frameId }));
         }
     });
 }
