@@ -1,19 +1,58 @@
-async function showWat() {
-    const fileDisplay = document.querySelector(".repository-content .file .blob-wrapper");
+const FILE_DISPLAY_SELECTOR = ".repository-content .file .blob-wrapper";
+
+function inspectWasmDisplay() {
+    const fileDisplay = document.querySelector(FILE_DISPLAY_SELECTOR);
+    if (fileDisplay.wasmDisplayApplied) {
+        return;
+    }
+    fileDisplay.wasmDisplayApplied = true;
+
     const fileTable = fileDisplay.querySelector("table");
+
+    // GitHub displays a text rendering of very small .wasm files in-line.
+    if (fileTable) {
+        showWat(fileDisplay, fileTable, document.querySelector("#raw-url").href);
+        return;
+    }
+
+    // ... whereas files starting at (probably) 1KB aren't displayed at all.
+    const image = fileDisplay.querySelector('.image');
+    const rawLink = image.querySelector('a');
+    const wasmUrl = rawLink.href;
+    const sourceLink = document.createElement('a');
+    sourceLink.innerText = 'View Source';
+    sourceLink.href = '#';
+    sourceLink.addEventListener('click', (e) => {
+        e.preventDefault();
+        const fileTable = document.createElement('table');
+        fileTable.className = 'highlight tab-size js-file-line-container';
+        fileTable.dataset.tabSize = '4';
+        fileDisplay.replaceChild(fileTable, image);
+        showWat(fileDisplay, fileTable, document.querySelector("#raw-url").href);
+    });
+    image.insertBefore(sourceLink, rawLink);
+    image.insertBefore(document.createElement('br'), rawLink);
+}
+
+async function showWat(fileDisplay, fileTable, wasmUrl) {
     setTableContent(fileTable, [renderLine("Loading wasm file ...", 0)]);
 
     await wabt.ready;
-    const wasmUrl = document.querySelector("#raw-url").href;
     const response = await fetch(new Request(wasmUrl));
     const contents = new Uint8Array(await response.arrayBuffer());
 
-    const module = wabt.readWasm(contents, {readDebugNames: true});
-    module.generateNames();
-    module.applyNames();
-    const wat = module.toText({ foldExprs: false, inlineExport: true });
-    setTableContent(fileTable, wat.split("\n").map(renderLine));
+    let wat;
+    try {
+        const module = wabt.readWasm(contents, { readDebugNames: true });
+        module.generateNames();
+        module.applyNames();
+        wat = module.toText({ foldExprs: false, inlineExport: true });
+    } catch (e) {
+        setTableContent(fileTable, [renderLine("Wasm file too large to display", 0)]);
+        return;
+    }
 
+    setTableContent(fileTable, wat.split("\n").map(renderLine));
     fileDisplay.className = "blob-wrapper data type-webassembly";
 }
 
@@ -47,20 +86,20 @@ function setTableContent(table, rows) {
     table.appendChild(tbody);
 }
 
+const observer = new MutationObserver(startWasmDisplay);
 function checkReady() {
-    return !!document.querySelector(".repository-content .file .blob-wrapper");
+    return !!document.querySelector(FILE_DISPLAY_SELECTOR);
 }
 
-function start() {
+function startWasmDisplay() {
     if (checkReady()) {
         observer.disconnect();
-        showWat();
+        inspectWasmDisplay();
         return;
     }
 
     observer.observe(document, { childList: true, subtree: true });
 }
 
-const observer = new MutationObserver(start);
-
-start();
+browser.runtime.onMessage.addListener(msg => startWasmDisplay());
+startWasmDisplay();

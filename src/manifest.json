@@ -1,11 +1,15 @@
 {
   "manifest_version": 2,
   "name": "WASM source renderer for GitHub",
-  "version": "0.1",
+  "version": "0.2",
   "author": "Till Schneidereit",
   "homepage_url": "https://github.com/tschneidereit/gh-wasm2wat",
 
   "description": "WASM source renderer for GitHub",
+
+  "background": {
+    "scripts": ["background.js"]
+  },
 
   "content_scripts": [
     {
@@ -17,6 +21,7 @@
 
   "permissions": [
     "https://github.com/*",
-    "https://raw.githubusercontent.com/*"
+    "https://raw.githubusercontent.com/*",
+    "webNavigation"
   ]
 }
